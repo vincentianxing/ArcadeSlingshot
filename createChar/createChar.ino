@@ -72,8 +72,8 @@ void mapping(int x, int y)
 void setup()
 {
   Serial.begin(9600);
-  lcd.createChar(1, matrix[0][0]);
-  lcd.createChar(B01000, matrix[0][1]);
+  lcd.createChar(1, matrix[7][4]);
+  //lcd.createChar(B01000, matrix[0][1]);
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
   lcd.write(1);

@@ -65,7 +65,7 @@ byte matrix[][5][8] = {
      {B00000, B00000, B00000, B00000, B00000, B00000, B00000, B00010},
      {B00000, B00000, B00000, B00000, B00000, B00000, B00000, B00001}}};
 
-int row, col;
+int row, col, lrow, lcol, mx, my;
 float xmap, ymap, l;
 
 void setup()
@@ -76,9 +76,9 @@ void setup()
   pinMode(inpressed, INPUT_PULLUP);
   Serial.begin(9600);
 
-  lcd.print("X: ");
-  lcd.setCursor(0, 1);
-  lcd.print("Y: ");
+  // lcd.print("X: ");
+  // lcd.setCursor(0, 1);
+  // lcd.print("Y: ");
 }
 
 void mapping(int xx, int yy)
@@ -97,6 +97,27 @@ void mapping(int xx, int yy)
   }
 }
 
+void lcdposition(int lx, int ly)
+{
+  if (lx <= 0){ //TODO
+    lcol = 0;
+  } 
+  else if (lx > 0) {
+    lcol = 1;
+  }
+  lrow = ly / 5;
+  mx = ly % 5;
+  my = abs(lx);
+  lcd.createChar(1, matrix[mx][my]);
+  byte ball [8];
+  for (int j = 0; j < 8; j++){
+    ball[j] = matrix[mx][my][j] | matrix[mx+1][my][j] | matrix[mx][my+1][j] | matrix[mx+1][my+1][j];
+  }
+  lcd.createChar(2, ball);
+  lcd.setCursor(lrow, lcol);
+  lcd.write(2);
+}
+
 void loop()
 {
   x = analogRead(inx);                 // reading x value [range 0 -> 1023] from left to right
@@ -108,72 +129,34 @@ void loop()
   rad = atan2(deltay, deltax);
   angle = rad * 57.3;
 
-  mapping(x, y);
+  lcd.clear();
 
-  lcd.setCursor(4,0);
-  lcd.print(xmap);
-  lcd.setCursor(4,1);
-  lcd.print(ymap);
+  mapping(x, y);
+  lcdposition(xmap, ymap);
+
+  // lcd.setCursor(4,0);
+  // lcd.print(xmap);
+  // lcd.setCursor(4,1);
+  // lcd.print(ymap);
+
+//  lcd.createChar(1, matrix[7][4]);
+//  lcd.setCursor(0,0);
+//  lcd.write(byte(1));
+  
 
   Serial.print("X: ");
-  Serial.println(x);
+  Serial.println(mx);
   Serial.print("Y: ");
-  Serial.println(y);
-  Serial.print("Not pressed: ");
-  Serial.println(notpressed);
-  Serial.print("Angle: ");
-  Serial.println(angle);
-  Serial.print("xmap: ");
-  Serial.println(xmap);
-  Serial.print("ymap: ");
-  Serial.println(ymap);
-  Serial.print("l: ");
-  Serial.println(l);
+  Serial.println(my);
+  // Serial.print("Not pressed: ");
+  // Serial.println(notpressed);
+  // Serial.print("Angle: ");
+  // Serial.println(angle);
+  // Serial.print("xmap: ");
+  // Serial.println(xmap);
+  // Serial.print("ymap: ");
+  // Serial.println(ymap);
+  // Serial.print("l: ");
+  // Serial.println(l);
   delay(200);
-
-  if ((x >= 500) && (x <= 600) && (y >= 500) && (y <= 600))
-  {
-    //middle
-  }
-  else
-  {
-    //move
-  }
-
-  if ((angle > -22.5) && (angle <= 22.5))
-  {
-    //up
-  }
-  else if ((angle > 22.5) && (angle <= 67.5))
-  {
-    //up-right
-  }
-  else if ((angle > 67.5) && (angle <= 112.5))
-  {
-    //right
-  }
-  else if ((angle > 112.5) && (angle <= 157.5))
-  {
-    //down-right
-  }
-  else if ((angle > 157.5) && (angle <= 180))
-  {
-    //down
-  }
-  else if ((angle > -180) && (angle <= -157.5))
-  {
-    //down
-  }
-  else if ((angle > -157.5) && (angle <= -112.5))
-  {
-    //down-left
-  }
-  else if ((angle > -112.5) && (angle <= -67.5))
-  {
-    //left
-  }
-  else if ((angle > -67.5) && (angle <= -22.5))
-  {
-    //up-left
-  }
 }
