@@ -16,8 +16,6 @@ int x = 0;
 int y = 0;
 int initx = 0;
 int inity = 0;
-int lastx = 0;
-int lasty = 0;
 int notpressed = 0;
 
 int deltax = 0;
@@ -73,6 +71,7 @@ byte matrix[][5][8] = {
      {B00000, B00000, B00000, B00000, B00000, B00000, B00000, B00001}}};
 
 int row, col, lrow, lcol, mx, my, trow, tcol, tx, ty, drow, dcol;
+int lastx, lasty, lastrow, lastcol;
 int nextx, nexty, nx, ny;
 float xmap, ymap, lastmap, l;
 float lastv = -1;
@@ -104,10 +103,10 @@ void setup()
 
 void mapping(int xx, int yy)
 { // map the input into new range
-  ymap = map(xx, 512, 1023, 0, 79);
-  ymap = constrain(ymap, 0, 79);
-  xmap = map(yy, 0, 1023, -7, 7);
-  xmap = constrain(xmap, -7, 7);
+  ymap = map(xx, 512, 1023, 0, 80);
+  ymap = constrain(ymap, 0, 80);
+  xmap = map(yy, 0, 1023, -7, 8);
+  xmap = constrain(xmap, -7, 8);
   if (xmap == 0)
   {
     l = 0;
@@ -128,14 +127,33 @@ void lcdposition(int lx, int ly)
   {
     lcol = 1;
   }
-  lrow = (ly + 1) / 5;
-  mx = (ly + 1) % 5;
+  lrow = ly / 5;
+  mx = ly % 5;
   my = abs(lx);
-  lcd.createChar(1, matrix[mx][my]);
-  byte ball[8]; // create the byte for displaying the ball
-  for (int j = 0; j < 8; j++)
+
+  if (lcol == 0)
   {
-    ball[j] = matrix[mx][my][j];
+    my = 7 - my;
+  }
+  lcd.createChar(1, matrix[mx][my]);
+
+  // create the byte for displaying the ball
+  byte ball[8];
+
+  // prevent the target from being cleared
+  if (lrow == trow && lcol == tcol)
+  {
+    for (int j = 0; j < 8; j++)
+    {
+      ball[j] = matrix[my][mx][j] | matrix[tx][ty][j] | matrix[tx + 1][ty][j] | matrix[tx][ty + 1][j] | matrix[tx + 1][ty + 1][j];
+    }
+  }
+  else
+  {
+    for (int j = 0; j < 8; j++)
+    {
+      ball[j] = matrix[my][mx][j];
+    }
   }
   lcd.createChar(2, ball);
 
@@ -171,9 +189,17 @@ void clearball()
       B00000,
       B00000,
   };
-  lcd.createChar(3, empty);
-  lcd.setCursor(lrow, lcol);
-  lcd.write(3);
+  if (lrow == trow && lcol == tcol)
+  {
+    lcd.setCursor(lrow, lcol);
+    lcd.write(4);
+  }
+  else
+  {
+    lcd.createChar(3, empty);
+    lcd.setCursor(lrow, lcol);
+    lcd.write(3);
+  }
 }
 
 void drawtarget()
@@ -222,9 +248,6 @@ void fly(int xx, int yy, int rrow, int ccol)
 
   // find the next position
   slope = (float)(dx - ix) / (float)(dy - iy);
-
-  Serial.println(slope);
-
   nexty = iy;
   while (nexty < 79)
   {
@@ -240,12 +263,19 @@ void fly(int xx, int yy, int rrow, int ccol)
     };
 
     // clear the last position
-    lcd.createChar(5, empty);
-    lcd.setCursor(drow, dcol);
-    lcd.write(5);
+    if (drow == trow && dcol == tcol)
+    {
+      lcd.setCursor(drow, dcol);
+      lcd.write(4);
+    }
+    else
+    {
+      lcd.createChar(5, empty);
+      lcd.setCursor(drow, dcol);
+      lcd.write(5);
+    }
 
     nextx = (int)(slope * nexty) + ix;
-    // Serial.println(nextx);
 
     drow = nexty / 5;
     dcol = nextx / 8;
@@ -253,16 +283,27 @@ void fly(int xx, int yy, int rrow, int ccol)
     nx = nextx % 8;
     ny = nexty % 5;
 
-    for (int j = 0; j < 8; j++)
+    // prevent the target from being cleared
+    if (drow == trow && dcol == tcol)
     {
-      next[j] = matrix[nx][ny][j];
+      for (int j = 0; j < 8; j++)
+      {
+        next[j] = matrix[nx][ny][j] | matrix[tx][ty][j] | matrix[tx + 1][ty][j] | matrix[tx][ty + 1][j] | matrix[tx + 1][ty + 1][j];
+      }
+    }
+    else
+    {
+      for (int j = 0; j < 8; j++)
+      {
+        next[j] = matrix[nx][ny][j];
+      }
     }
 
     lcd.createChar(6, next);
     lcd.setCursor(drow, dcol);
     lcd.write(6);
     nexty = nexty + 1;
-    delay(100);
+    delay(50);
 
     // check if the target is hit
     check();
@@ -270,17 +311,26 @@ void fly(int xx, int yy, int rrow, int ccol)
     {
       break;
     }
+    // cehck if reach the end point
+    if (drow == rrow && dcol == ccol)
+    {
+      if (nx == xx && ny == yy)
+      {
+        break;
+      }
+    }
   }
 }
 
 void check()
-{ // check if hit and reset the target when needed
+{ // check if the target is hit
   if (drow == trow && dcol == tcol)
   {
-    if (nx == tx && ny == ny)
+    if ((tx <= nx) && (nx <= tx + 1) && (ty <= ny) && (ny <= ty))
     {
       Serial.println("hit!!!");
       hit = true;
+      score = score + 1;
       cleartarget();
       drawtarget();
     }
@@ -299,7 +349,6 @@ void loop()
   {
     if ((millis() - lastDebounceTime) > debounceDelay)
     {
-      //Serial.println("restart");
       cleartarget();
       drawtarget();
       score = 0;
@@ -335,24 +384,28 @@ void loop()
     hit = false;
   }
 
-  // update the ball
+  // uncomment for a visible ball
   clearball();
   mapping(x, y);
   lcdposition(xmap, ymap);
 
   // check if user release the joystick
-  //  Serial.print(lastmap);
-  //  Serial.print(" - ");
-  //  Serial.println(ymap);
-  if ((ymap < 5.00) && (lastmap - ymap > 10))
+  if ((ymap < 10.00) && (lastmap - ymap > 20))
   {
-    //hit = true;
     Serial.println("Release!!!!!!!!!!!!!!!!!  ");
     Serial.print(lastmap);
     Serial.print(" - ");
     Serial.println(ymap);
-    fly(tx, ty, trow, tcol);
+    Serial.println(lastx);
+    Serial.println(lasty);
+    Serial.println(lastrow);
+    Serial.println(lastcol);
+    fly(lastx, lasty, lastrow, lastcol);
   }
+  lastx = my;
+  lasty = mx;
+  lastrow = lrow;
+  lastcol = lcol;
   lastmap = ymap;
   delay(30);
 }
