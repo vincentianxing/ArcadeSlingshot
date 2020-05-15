@@ -410,12 +410,13 @@ void loop()
   }
   updateDisplay(scoreBits);
 
-  // uncomment for a visible ball
+  // visible ball
   clearball();
   mapping(x, y);
   lcdposition(xmap, ymap);
 
   // check if user release the joystick
+  // use this to adjust your sensitivity
   if ((ymap < 10.00) && (lastmap - ymap > 20))
   {
     Serial.println("Release!!!!!!!!!!!!!!!!!  ");
