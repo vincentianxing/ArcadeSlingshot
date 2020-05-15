@@ -8,6 +8,14 @@
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
+// var for 7-segment
+const int dataPin = 10;  // blue wire to 74HC595 pin 
+const int latchPin = 8; // green to 74HC595 pin 
+const int clockPin = 13; // yellow to 74HC595 pin 
+const char common = 'c';    // common cathode
+bool decPt = true;  // decimal point display flag
+ 
+
 // var for joystick
 const int inx = A0;
 const int iny = A1;
@@ -85,15 +93,24 @@ void setup()
   pinMode(inx, INPUT);
   pinMode(iny, INPUT);
   pinMode(inpressed, INPUT_PULLUP);
+
+  pinMode(dataPin, OUTPUT);
+  pinMode(latchPin, OUTPUT);
+  pinMode(clockPin, OUTPUT);
   Serial.begin(9600);
+  
   hit = true;
+  score = 0;
+
   // wait for the press to start the game
   lcd.print("Press joystick");
   lcd.setCursor(0, 1);
   lcd.print("to start/pause!");
+  
   while (digitalRead(inpressed))
   {
   }
+  
   lcd.clear();
   lcd.print("Press to restart!");
   lcd.setCursor(0, 1);
@@ -384,6 +401,10 @@ void loop()
     hit = false;
   }
 
+  // display score
+  byte scoreBits = toBits(score);
+  updateDisplay(scoreBits);
+
   // uncomment for a visible ball
   clearball();
   mapping(x, y);
@@ -408,4 +429,48 @@ void loop()
   lastcol = lcol;
   lastmap = ymap;
   delay(30);
+}
+
+void updateDisplay(byte eightBits) {
+  digitalWrite(latchPin, LOW);  // prepare shift register for data
+  shiftOut(dataPin, clockPin, LSBFIRST, eightBits); // send data
+  digitalWrite(latchPin, HIGH); // update display
+}
+
+byte toBits(int someNumber) {
+  switch (someNumber) {
+    case 0:
+      return B11111100;
+      break;
+    case 1:
+      return B01100000;
+      break;
+    case 2:
+      return B11011010;
+      break;
+    case 3:
+      return B11110010;
+      break;
+    case 4:
+      return B01100110;
+      break;
+    case 5:
+      return B10110110;
+      break;
+    case 6:
+      return B10111110;
+      break;
+    case 7:
+      return B11100000;
+      break;
+    case 8:
+      return B11111110;
+      break;
+    case 9:
+      return B11110110;
+      break;
+    default:
+      return B10010010; // Error condition, displays three vertical bars
+      break;   
+  }
 }
