@@ -402,10 +402,11 @@ void loop()
   }
 
   // display score
+  byte scoreBits;
   if (score >= 10) {
-    byte scoreBits = B10010010;
+    scoreBits = B10010010;
   } else {
-    byte scoreBits = toBits(score);
+    scoreBits = toBits(score);
   }
   updateDisplay(scoreBits);
 
