@@ -402,7 +402,11 @@ void loop()
   }
 
   // display score
-  byte scoreBits = toBits(score);
+  if (score >= 10) {
+    byte scoreBits = B10010010;
+  } else {
+    byte scoreBits = toBits(score);
+  }
   updateDisplay(scoreBits);
 
   // uncomment for a visible ball
